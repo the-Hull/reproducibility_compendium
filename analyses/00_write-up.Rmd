@@ -17,7 +17,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
 ```
 
-check for using includes in text chunks stay updated.
 
 # Motivation
 
