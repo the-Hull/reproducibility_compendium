@@ -1,0 +1,555 @@
+---
+title: "Keeping up with reproducibility - part 1: Research Compendia"
+author: "A. Hurley"
+date: "June 17, 2018"
+output: 
+  html_document:
+    theme: flatly
+    highlight: tango
+    toc: yes
+    toc_float: yes
+    code_folding: show
+    number_sections: false
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+```
+
+check for using includes in text chunks stay updated.
+
+# Motivation
+
+### Why?
+
+Reproducibility is one of science's corner stones, giving researchers carrying out initial or follow-up/replication studies confidence in their findings. This ultimately results in more trust among scientists and between scientists and the public (read: everybody interested in and dependent on outcomes). Yet, there is a reproducibility crisis in
+[science](https://www.nature.com/news/1-500-scientists-lift-the-lid-on-reproducibility-1.19970), with prominent examples in the fields of [biomedicine](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/j.1740-9713.2015.00827.x) and [psychology](https://www.scribd.com/document/225285909/Kahneman-Commentary); it's become apparent that we need to step up our game on this end. 
+
+But fear not! There are many brilliant folks working on the issue, providing a number of approaches and workflows to ensure reproducibility (e.g. liftr [\@road2stat](https://twitter.com/road2stat), compendia and docker [\@cboettig](https://twitter.com/cboettig), workflowr [\@jdblischak](https://twitter.com/jdblischak), drake [\@wmlandau](https://twitter.com/wmlandau)) as well as (fairly) straight-forward implementation. 
+
+### What?
+
+This post is the first in a series that will lead up to isolating and sharing a computational environment together with your work (analyses and write-up), so that others can reproduce it without needing to install all of the tools and individual packages on their machine. In another post, I'll try to explore the application of [drake](https://github.com/ropensci/drake) for project management.
+
+### How?
+
+In this post, I want to explain and showcase the concept of **research compendia** for the analyses and write-up stage of a project. It is based around `R` packages, is quite scalable, and most importantly, it is highly adaptable, yet (fairly) familiar to folks frequently using `R`.
+
+
+# Research Compendia are (a lot like) packages
+
+`R` packages are well-organized bundles of code, and sometimes data, that can be neatly transferred, applied and re-used. The `R` community has agreed on certain guidelines and best practices for package development, such as folder structure and dependency management (i.e. when your package relies on code from another). 
+
+This structure, and the automated bundling, can be applied for creating an individual package, or **research compendium** containing your data, analyses code and write-up, along with anything else needed to reproduce your work on a report/publication! How cool is that?
+
+This approach is definitely somewhat advanced, and requires time to understand and implement (at least the first times round). 
+But it's extremely easy to carry over to your next analyses, and reproducibility should be worth the climbing that fairly steep learning curve. 
+
+## What's covered in this post: 
+
+1. Which tools you need to install
+2. How to set-up a package "environment" to organize your files in
+3. How to create the bare-bones for a package
+4. How to implement a function with documentation for later use in your analyses
+5. How to work up/tidy some data and store it in your package for later use 
+6. A final write-up with RMarkdown
+
+Before I forget. We'll use some World Bank population data to emulate an analyses!
+
+# Before getting started
+
+## Making and using a package?
+
+The steps we are about to take are very similar to the actual process of developing
+a fully-fledged `R` package (i.e. for submission to [CRAN](https://cran-r.org) or [Bioconductor](www.bioconductor.org))
+
+There are comprehensive resources on how to create your own "application" package (as opposed to a research compendium) provided by the `R` project [here](https://cran.r-project.org/doc/manuals/R-exts.html#Data-in-packages) as well as one of my favorites by Hadley Wickham [here](http://r-pkgs.had.co.nz/). I recommend having a glance over these, if you're interested in some of the details of creating packages, such as namespaces, checks and tests. This knowledge (and running through the typical package development processes) aren't exactly prerequisite for a research compendium. However, I wanted to be able to attach the compendium (just like a package) in the write-up document (RMarkdown) via `library()` to make the custom functions and data available. 
+
+
+## Your computer
+
+There are a number of tools you should download to make `R` package development possible on your machine. 
+For this post, I'm assuming you're using the latest version
+of [`R`](https://cran.r-project.org/) and [`RStudio`](www.rstudio.com). Other tools and packages you'll need are:
+
+- [Rtools](https://cran.r-project.org/bin/windows/Rtools/)
+
+(Optional and not explained here are version control tools such as Git and [GitHub](https://github.com) - yet highly recommended).
+
+
+# A first research compendium 
+
+## Setting up 
+
+1. Open RStudio, click on `File` and open a new project (either in a new or existing directory) and give it a fitting name (like Project_X). Make sure the project initialized a session (see top right corner for the project panel - your project should show up there).
+
+2. Set up a folder structure you're comfortable with (e.g. after [\@cboettig](https://twitter.com/cboettig)'s template). The bare minimum should be something like:
+- `R/`
+- `data/`
+- `analyses` or `vignette` for write up
+- `data-raw/` (optional, but used here)
+
+3. Open a new script with all of the code in the chunk below and run it. We'll use this script to get going with the development environment (create additional folders and files) and load required any packages. Files include a `Description`, `Readme` and `News`, among others, which
+are useful for storing any additional meta data, contact details or updates.
+The script is based on [@colinfay](https://twitter.com/_colinfay)'s post on [API development](https://colinfay.me/build-api-wrapper-package-r/). When we're done, we'll save this as`00_package_setup.R` in a newly created folder `data-raw`. 
+
+```{r pck-set-up, echo = T, eval=F}
+
+# Set-up ------------------------------------------------------------------
+
+library(devtools)
+library(usethis)
+library(desc)
+
+# Remove default DESC
+unlink("DESCRIPTION")
+# Create and clean desc
+my_desc <- description$new("!new")
+
+# Set your package name
+my_desc$set("Package", "WBanalyses")
+
+#Set your name
+my_desc$set("Authors@R", "person('Alex', 'Hurley', email = 'agl.hurley@gmail.com', role = c('cre', 'aut'))")
+
+# Remove some author fields
+my_desc$del("Maintainer")
+
+# Set the version
+my_desc$set_version("0.0.0.9000")
+
+# The title of your package
+my_desc$set(Title = "Analyses of WB Population data in an exemplary package compendium")
+# The description of your package
+my_desc$set(Description = "This is a test run for an analyses based on reproducible research principles.")
+# The urls
+my_desc$set("URL", "http://github.com/the-hull/wbAnalyses")
+my_desc$set("BugReports", "http://github.com/the-hull/wbAnalyses/issues")
+# Save everyting
+my_desc$write(file = "DESCRIPTION")
+
+# If you want to use the MIT licence, code of conduct, and lifecycle badge
+use_mit_license(name = "Alex HURLEY")
+use_code_of_conduct()
+use_lifecycle_badge("Experimental")
+use_news_md()
+
+# Get the dependencies
+
+use_package("ggplot2")
+use_package("dplyr")
+use_package("rlang")
+use_package("tidyr", type = "Imports")
+use_package("dygraphs")
+use_package("attempt", type = "Imports")
+
+
+# Clean your description
+use_tidy_description()
+
+# Make a namespace file
+use_namespace()
+
+# create a folder for storing this script as well as additional pre-processing steps
+use_data_raw() # also creates an .Rbuildignore file 
+
+
+```
+
+After running all of the code, save the file into the newly created folder `data-raw/`. 
+
+> A little side note on the `.Rbuildignore`: anything listed here is neither compiled nor checked (i.e. by `R CMD CHECK`) in the package build process. Be aware, that you might 
+> want to share the raw data with your research compendium / package. I'm only using it here to introduce the concept.
+
+
+# Fleshing it out
+
+## Raw data and pre-processing
+
+Packages often come with data and an informative description of it for illustrative examples. Research compendia, similarly,
+can contain the data necessary for your analyses. Typical steps are 1) obtaining raw data, 2) pre-processing/munging to get from a really raw to a less raw state, and 3) preparing some documentation (e.g. similar to a code book).
+
+Our mock analyses is based on [World Bank Population data](http://api.worldbank.org/v2/en/indicator/SP.POP.TOTL?downloadformat=csv). Please follow the link to download and save it into `data-raw`.  
+
+> Side note: this data could also be downloaded with a call to the World Bank API, e.g. with the pacakge `wbstats` - definitely more reproducible, and perhaps something you want to figure out on your own.
+
+
+### Pre-processing
+
+Open a new script, called `01_data_setup.R` and save it into `data-raw/`, with the code in the below. It extracts and processes the data into
+a format that's useful for our analyses later on. The resulting data set will be saved
+into the folder `data` (via a call to `use_data()`), together with a brief documentation (following code chunk), both of which will be easily
+accessible within `R` when our package is loaded.
+
+```{r data-prep, echo=T, eval=F}
+
+# Load data and process into ggplot ready df's
+
+library(dplyr)
+library(tidyr)
+library(usethis)
+library(purrr)
+
+# Load files --------------------------------------------------------------
+
+file_path <- "./data-raw/API_SP.POP.TOTL_DS2_en_csv_v2_9944650.zip"
+
+# make file list
+list_of_files <- unzip(file_path, list = TRUE)[, 1]
+
+# establish connection to population data file
+file_conn <- unz(file_path, list_of_files[2])
+
+# make long data
+pop_data <- readr::read_csv(file_conn, skip = 4) %>% 
+    dplyr::select(1:61) %>% 
+    tidyr::gather(key = "year", value = "population", -matches("[a-zA-Z]"))
+
+# establish connection to meta data file 
+file_conn <- unz(file_path, list_of_files[3])
+
+# clean and join with data above
+pop_data <- readr::read_csv(file_conn) %>% 
+    dplyr::select(-SpecialNotes, -X6, -`Country Code`) %>% 
+    dplyr::left_join(pop_data,., by = c("Country Name" = "TableName")) %>% 
+    purrr::set_names(tolower(colnames(.) %>% 
+                                 sub(" ", "_", .))) %>% 
+    tidyr::drop_na() %>% 
+    dplyr::mutate(population = population * 1e-6,
+                  year = as.numeric(year)) 
+
+
+
+
+# this last step saves our object into the data/ folder as "pop_data.Rda", which ensures 
+# it is attached it to our global environment when the package is loaded
+usethis::use_data(pop_data, overwrite = T) 
+
+
+
+```
+
+
+### Documenting
+
+Next, we right a brief documentation for our data set, in a script called
+`pop_data.R`, which is also saved in our `data/` folder. The chunk below
+contains code that will be rendered into a browsable help page such as `help(iris)`,
+with useful information on all variables found in our data set.
+
+```{r data-doc, echo=T,eval=F}
+
+#' World Bank Global Population.
+#'
+#' A dataset containing the total population on country and regional level. 
+#'
+#' @format A data frame with 12035 rows and 8 variables:
+#' \describe{
+#'   \item{country_name}{Character, name of each country}
+#'   \item{country_code}{Character, country identifier code}
+#'   \item{indicator_name}{Character, WB indicator name}
+#'   \item{indicator_code}{Character, WB indicator code}
+#'   \item{year}{Numeric, year of observation}
+#'   \item{population}{Numeric, population in millions}
+#'   \item{region}{Character, World region}
+#'   \item{incomegroup}{Character, WB income group}
+#'   ...
+#' }
+#' @source \url{http://https://data.worldbank.org/indicator/SP.POP.TOTL/}
+"pop_data"
+
+
+
+
+```
+
+
+Let's see it in action (this a "preview" and will only work once your package/compendium has been compiled for the first time):
+
+
+```{r, echo = TRUE, eval = TRUE,warning =F, message=F}
+library(WBanalyses)
+library(dplyr)
+pop_data %>% as.data.frame() # last step only for paged printing in knitr
+```
+
+
+## Including a custom function
+
+The following section shows how to develop a function with documentation (i.e.  for `help(function)`), which we'll apply later for our analyses. 
+
+The function calculates the percent change between two years for a relevant grouping level (e.g. `country_name`, `region` or `income group`). This function will be saved into the folder `R/` with a pertinent name; during the build process the documentation is automatically rendered based on the `roxygen2` comments (`#'`) above the actual function. Magic!
+There's a fantastic shortcut in `RStudio` that adds the Roxygen skeleton: have your cursor inside the function definition (i.e. within `{}`) and hit `ctrl+alt+shift+R` (Windows)
+
+
+```{r function_dev,echo=T}
+
+#' Calculate the change of a WB parameter over a time period in percent
+#'
+#' @description Calculates the change of a WB parameter over a time period in percent. Column 
+#' input and output names are flexible, as are grouping variables (e.g country or region).
+#'
+#' @param .dat data.frame or tibble containing identifier.
+#' @param start_year Numeric (length one), start year of period.
+#' @param end_year Numeric (length one), end year of period.
+#' @param value_col Column of interest (bare name)
+#' @param year_col Column containing years (bare name)
+#' @param outname Name for newly calculated change percent column
+#' @param ... Grouping columns (bare names)
+#'
+#' @importFrom attempt stop_if_not
+#' @importFrom tidyr spread
+#' @import rlang
+#' @import dplyr
+#'
+#' @return Returns a grouped tibble with the grouping column, two columns with 
+#' the summed data of each group for the chosen start and end year, as well as 
+#' a column `outname` with the calculated percent change over the given time period.
+#' @export
+#'
+#' @examples
+#  # pop_data <- data(pop_data)
+#' wb_change_percent(.dat = pop_data,
+#'     start_year = 2002,
+#'     end_year = 2016,
+#'     value_col = population,
+#'     year_col = year,
+#'     outname = "pop_change_perc",
+#'     region) 
+wb_change_percent <- function(.dat, 
+                              start_year,
+                              end_year,
+                              value_col,
+                              year_col,
+                              outname = "val_change",
+                              ...){
+    
+    # some sanity checks, not exhaustive
+    attempt::stop_if_not(.x = .dat, 
+                         .p = is.data.frame,
+                         msg = "Input .dat needs to be a data frame or tibble.")
+    
+    attempt::stop_if_any(.l = list(start_year, end_year),
+                         .p = Negate(is.numeric),
+                         msg = "Start and end year need to be numeric.")
+    
+    attempt::stop_if_not(.x = outname,
+                         .p = is.character)
+    
+    # for tidy evaluation with rlang
+    value_col <- enquo(value_col)
+    year_col <- enquo(year_col)
+    
+    group_cols <- quos(...)
+    
+    # intial grouping based on the chosen group cols, and always on year
+    .dat <- .dat %>% 
+        group_by(!!! group_cols, !! year_col)
+    
+    # set up for using column name strings for tidy eval in mutate later on
+    col_year_end <- paste0(quo_name(year_col),"_", end_year)
+    col_year_start <- paste0(quo_name(year_col), "_" ,start_year)
+    
+    # inserted this to fix an R CMD CHECK note
+    temp <- NULL 
+    
+    # calculate percent change for the chosen years
+    # approach relies on spread and tidy to return a useful result
+    res <- .dat %>% 
+        dplyr::filter(!! year_col == start_year | 
+                          !! year_col == end_year) %>%
+        summarise(temp = sum(!! value_col,na.rm = T)) %>%
+        tidyr::spread(key = !! year_col, value = temp, sep = "_") %>% 
+        mutate(!! outname := (( !! sym(col_year_end) -  !! sym(col_year_start)) /
+                                  !! sym(col_year_end)) * 100)
+    
+    
+    
+    return(res)
+    
+}
+
+
+
+
+```
+
+## Compiling the package, take I
+
+At this stage it's useful to run first checks on our function and all of the documentation. To do this, click the **Build Tab** in `RStudio`, and click check! 
+
+This builds all of the documentation for our function data set and runs some important checks on our compliance with `R`'s best practices. 
+You'll notice some notes, and potentially warnings and errors. This is common, but extremely helpful. For example, we need to add which version of `R` our package depends on. Use the shortcut `ctrl+.` (period) and navigate yourself to the description file. Add the following line:
+
+```
+Depends: R (>= 3.2.0)
+```
+and one warning should be resolved during our next check run.
+
+> Note: to my knowledge there is some debate about which R version to list here, and some say providing the most recent one will keep you on the safe side. I personally am still undecided and tend to use the version for which all required packages have been built on last.
+
+Generally, you'll want to keep checking to resolve all errors, warnings and notes, if you want to publish a package on a trusted repository network, such as CRAN. For our purposes though, skipping some notes on e.g. top level files for our `analyses/` folder is completely fine.
+
+> Note:
+I'm not applying any unit testing a la `testthat` for our function, but I highly recommend doing so for actual use-cases.
+
+## Compiling the package, take II
+
+Once our checks don't flag any major issues in our package, we're ready to get a first compiled version of it. This is necessary in order for us to be able to attach the function and data during our analyses write-up.
+
+For this, simply navigate back to the build tab, hit "more" and "Build Source Package". Now, you can readily install it into your local package library using:
+
+```
+install.packages(file_path, repos = NULL, type="source")
+```
+The package will be located in your project's parent directory. i.e. one level higher in the folder structure. If you're still in an `R` session within your project, you can simply replace `file_path` with `"../"`.
+
+Now, all code and data is ready to use, and we can start writing an actual analyses, (following below), and save it into our `analyses/` folder. After you're done, simply re-build the package to source in order to have a full research compendium you can share.
+
+> Note: to prevent confusion, just be aware that this entire tutorial constitutes what would be a reproducible analyses, and is saved in the folder `analyses/`.
+
+
+
+# Write-up
+
+The section outlines the analyes in our mock report, which answers the following question:
+
+- Within each region, which countries have represent the most extreme values of growth and loss?
+
+Note, that this `.Rmd` file containing this post is itself the write-up, found in the research compendia!
+
+
+### Identifying big gainers and little losers
+
+We'll use `ggplot2` and some list magic with `gridExtra` to put together a panel figure. 
+**Update**: Little disclosure, I'm revisiting this post from 2018 and would now likely implement a solution with `patchwork`.
+
+First things first! Let's get some numbers out of the world population data:
+
+
+```{r wb_analyses, echo=T, eval = T, fig.width = 9, fig.height = 13}
+
+library(WBanalyses) #load our custom library
+library(dplyr)
+library(ggplot2)
+
+# calculate pop change for last 10 years in data set.
+
+max_year <- max(pop_data$year)
+start_year <- max_year - 10
+
+
+# ?wb_change_percent for the documentation
+
+# add "region" in ... before country_name to keep column in analyses
+pop_change <- pop_data %>%
+    WBanalyses::wb_change_percent(start_year = start_year,
+                                  end_year = max_year,
+                                  value_col = population,
+                                  year_col = year,
+                                  outname = "population_perc_change",
+                                  region,
+                                  country_name)
+
+pop_change %>% as.data.frame() # look at data
+
+# calculate the biggest loosers and gainers / lowest increasers and decliners per region
+
+extreme_change <- pop_change %>%
+    ungroup() %>%
+    group_by(region) %>%
+    mutate(rank_change = dplyr::dense_rank(population_perc_change)) %>%
+    filter(rank_change == max(rank_change) | rank_change == min(rank_change))
+extreme_change %>%
+    as.data.frame()
+
+
+```
+
+
+
+
+```{r plot_adj_legend,echo=TRUE, eval = TRUE, fig.height = 15, fig.width = 9}
+
+library(purrr)
+library(gridExtra)
+
+gglist <- pop_data[pop_data$country_name %in% 
+                       extreme_change$country_name, ] %>% 
+    left_join(extreme_change, 
+              by = c("country_name", "region")) %>% 
+    split(f = .$region) %>%
+    purrr::map(function(x){
+        x %>%
+            ggplot(aes(x = as.numeric(year),
+                       y = population,
+                       color = country_name)) +
+            geom_rect(xmin = 2006,
+                      xmax = 2016, 
+                      ymin = -Inf,
+                      ymax = Inf,
+                      fill = "gray90",
+                      col = NA,
+                      alpha = .1) +
+            geom_line(size = 1.5) +
+            
+            theme_minimal() +
+            # facet_grid(region~., scales = "free_y") +
+            ylab("Population (millions)") +
+            xlab("Year") +
+            # ggtitle("Country-level opulation change between 2006 and 2016",
+            # subtitle = "for most extreme change (top and bottom) divided by World Regions") +
+            labs(color = "", 
+                 title = x$region %>%
+                     unique()) +
+            # stat_summary(fun.y = max, 
+            # geom = "label",mapping = aes(x = 1970, label = country_name), show.legend = F) +
+            stat_summary(fun.y = function(x) x[length(x)], 
+                         geom = "text",
+                         mapping = aes(x = 2018.5,
+                                       label = population_perc_change %>% round(2)  %>% paste("%")),
+                         show.legend = F) +
+            # ggplot2::guide_legend(direction = "horizontal") +
+            theme(legend.position = "bottom") +
+            lims(y = c(0, max(x$population) * 1.2))
+    })
+
+# purrr::map(gglist, ~gridExtra::grid.arrange(.x, ncol = 3,newpage = F))
+
+
+# gridExtra::grid.arrange(gglist, ncol = 3,newpage = F)
+# do.call(gridExtra::grid.arrange, c(gglist, ncol=3))
+gridExtra::marrangeGrob(gglist,
+                        ncol = 1,
+                        nrow = 6,
+                        top = "Country-level population change between 2006 and 2016", 
+                        bottom = "Source: World Bank, 2018", color = "Country")
+
+# ggsave(plot = wl_plot,
+#        filename = "./out/figs/01_shallow_wetlands/URSA_P19_wl_cleaned.pdf",
+#        width = 17.5,
+#        height = 25,
+#        units = "in")
+
+
+```
+
+
+
+# Final thoughts
+
+Research compendia provide a coherent and compact form of distribution a reproducible bundle of code, data and write-up. Especially when based on `R` package principles, they offer a familiar structure to UseRs. Even when others have not been exposed to `R` (or programming in general), the compendium should be structured well enough to be easily followed. 
+
+In addition to showcasing compendia, we've also (very superficially) seen how to set-up and compile a package with useful and well-documented functions ( [with bits and bobs of dplyr programming and non-standard evaluation](https://dplyr.tidyverse.org/articles/programming.html) ).
+
+
+
+The approach we saw requires compiling and checking the package (potentially several times) before applying it. This has benefits, however, I do find it somewhat inconvenient for the author, as the package (i.e. compendia) needs to be installed  before the finalized research compendium has had it's last compile. 
+This would not be necessary if you choose to only share the source files, and access the package via "Load All" in the build tab - or even less so if you chose not to build the compendium as a package, but rather just use the familiar folder structure and `source()` your functions/ `read.x()` your files.
+
+There are elaborate and powerful tools to alleviate these issues. We can, for instance, create a computationally isolated *container*, that behaves similar to a virtual machine (ever played SNES on a computer with an emulator?). One increasingly popular option for this is [docker](https://docker.com), which we'll explore in subsequent posts.
+
+Thanks for reading! 
+
+.
