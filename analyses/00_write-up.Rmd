@@ -23,9 +23,9 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALS
 ### Why?
 
 Reproducibility is one of science's corner stones, giving researchers carrying out initial or follow-up/replication studies confidence in their findings. This ultimately results in more trust among scientists and between scientists and the public (read: everybody interested in and dependent on outcomes). Yet, there is a reproducibility crisis in
-[science](https://www.nature.com/news/1-500-scientists-lift-the-lid-on-reproducibility-1.19970), with prominent examples in the fields of [biomedicine](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/j.1740-9713.2015.00827.x) and [psychology](https://www.scribd.com/document/225285909/Kahneman-Commentary); it's become apparent that we need to step up our game on this end. 
+[science](https://www.nature.com/news/1-500-scientists-lift-the-lid-on-reproducibility-1.19970), with prominent examples in the fields of [biomedicine](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/j.1740-9713.2015.00827.x) and [psychology](https://www.scribd.com/document/225285909/Kahneman-Commentary); it's become apparent that we need to step up our game on this end. While there are multiple facets to reproducibility, such as providing accurate descriptons of materials and methods used for a given study, this blog post will focus on reproducing computational/analytical outcomes, including a final report.
 
-But fear not! There are many brilliant folks working on the issue, providing a number of approaches and workflows to ensure reproducibility (e.g. liftr [\@road2stat](https://twitter.com/road2stat), compendia and docker [\@cboettig](https://twitter.com/cboettig), workflowr [\@jdblischak](https://twitter.com/jdblischak), drake [\@wmlandau](https://twitter.com/wmlandau)) as well as (fairly) straight-forward implementation. 
+There are many brilliant folks working on the computational/analytical facet, providing a number of approaches and workflows to ensure reproducibility (e.g. `liftr` [\@road2stat](https://twitter.com/road2stat), [`rrrpkg`](https://github.com/ropensci/rrrpkg) compendia and docker [\@cboettig](https://twitter.com/cboettig), `workflowr` [\@jdblischak](https://twitter.com/jdblischak), `drake` [\@wmlandau](https://twitter.com/wmlandau)) as well as (fairly) straight-forward implementation. 
 
 ### What?
 
@@ -43,7 +43,10 @@ In this post, I want to explain and showcase the concept of **research compendia
 This structure, and the automated bundling, can be applied for creating an individual package, or **research compendium** containing your data, analyses code and write-up, along with anything else needed to reproduce your work on a report/publication! How cool is that?
 
 This approach is definitely somewhat advanced, and requires time to understand and implement (at least the first times round). 
-But it's extremely easy to carry over to your next analyses, and reproducibility should be worth the climbing that fairly steep learning curve. 
+But it's extremely easy to carry over to your next analyses, and reproducibility should be worth climbing that fairly steep learning curve. 
+There are some great resources and links to templates provided on rOpensci's [`rrrpkg`](https://github.com/ropensci/rrrpkg) repository that help easing into the concept!
+
+> Please note, that a research compendium *per-se* does not require going through the package building process entirely. However, this approach makes function and data documentation available through standard calls to  `R`, such as `?function` or `data(dataset)` and also handles dependencies on other packages well (as versions can be specified in the [package namespace](http://r-pkgs.had.co.nz/description.html)), which is **what I will explain here**.
 
 ## What's covered in this post: 
 
@@ -53,6 +56,7 @@ But it's extremely easy to carry over to your next analyses, and reproducibility
 4. How to implement a function with documentation for later use in your analyses
 5. How to work up/tidy some data and store it in your package for later use 
 6. A final write-up with RMarkdown
+7. Optioins for sharing your compendium
 
 Before I forget. We'll use some World Bank population data to emulate an analyses!
 
@@ -61,29 +65,34 @@ Before I forget. We'll use some World Bank population data to emulate an analyse
 ## Making and using a package?
 
 The steps we are about to take are very similar to the actual process of developing
-a fully-fledged `R` package (i.e. for submission to [CRAN](https://cran-r.org) or [Bioconductor](www.bioconductor.org))
+a fully-fledged `R` package (i.e. for submission to [CRAN](https://cran-r.org) or [Bioconductor](www.bioconductor.org)), **but the rigor and technicalities required for this are not essential for a compendium**.
 
-There are comprehensive resources on how to create your own "application" package (as opposed to a research compendium) provided by the `R` project [here](https://cran.r-project.org/doc/manuals/R-exts.html#Data-in-packages) as well as one of my favorites by Hadley Wickham [here](http://r-pkgs.had.co.nz/). I recommend having a glance over these, if you're interested in some of the details of creating packages, such as namespaces, checks and tests. This knowledge (and running through the typical package development processes) aren't exactly prerequisite for a research compendium. However, I wanted to be able to attach the compendium (just like a package) in the write-up document (RMarkdown) via `library()` to make the custom functions and data available. 
+There are comprehensive resources on how to create your own "application" package (as opposed to a research compendium) provided by the `R` project [here](https://cran.r-project.org/doc/manuals/R-exts.html#Data-in-packages) as well as one of my favorites by Hadley Wickham [here](http://r-pkgs.had.co.nz/). I recommend having a glance over these, if you're interested in some of the details of creating packages, such as namespaces, checks and tests. This knowledge (and running through the typical package development processes) aren't exactly prerequisite for a research compendium. However, I wanted to be able to attach the compendium (just like a package) in the write-up document (RMarkdown) via `library()` to make some custom functions and data available. This also allows future users to do the same when  exploring/reproducing your analyses. 
 
 
 ## Your computer
 
 There are a number of tools you should download to make `R` package development possible on your machine. 
-For this post, I'm assuming you're using the latest version
-of [`R`](https://cran.r-project.org/) and [`RStudio`](www.rstudio.com). Other tools and packages you'll need are:
+For this post, you'll need the (latest versions) of:
 
+- [`R`](https://cran.r-project.org/) 
 - [Rtools](https://cran.r-project.org/bin/windows/Rtools/)
+- [RStudio](www.rstudio.com)
 
-(Optional and not explained here are version control tools such as Git and [GitHub](https://github.com) - yet highly recommended).
+Optional and not explained here are version control tools such as [Git](https://git-scm.com/) and [GitHub](https://github.com) - yet highly recommended.
 
 
 # A first research compendium 
+
+The final compendium containing this post, as well as all of the set-up and raw data is found here: 
+[https://github.com/the-Hull/reproducibility_compendium](https://github.com/the-Hull/reproducibility_compendium).
+The next section outline and explain how we'll get there.
 
 ## Setting up 
 
 1. Open RStudio, click on `File` and open a new project (either in a new or existing directory) and give it a fitting name (like Project_X). Make sure the project initialized a session (see top right corner for the project panel - your project should show up there).
 
-2. Set up a folder structure you're comfortable with (e.g. after [\@cboettig](https://twitter.com/cboettig)'s template). The bare minimum should be something like:
+2. Set up a folder structure you're comfortable with (e.g. after [\@cboettig](https://twitter.com/cboettig)'s [template](https://github.com/cboettig/template)). The bare minimum should be something like:  
 - `R/`
 - `data/`
 - `analyses` or `vignette` for write up
@@ -91,7 +100,7 @@ of [`R`](https://cran.r-project.org/) and [`RStudio`](www.rstudio.com). Other to
 
 3. Open a new script with all of the code in the chunk below and run it. We'll use this script to get going with the development environment (create additional folders and files) and load required any packages. Files include a `Description`, `Readme` and `News`, among others, which
 are useful for storing any additional meta data, contact details or updates.
-The script is based on [@colinfay](https://twitter.com/_colinfay)'s post on [API development](https://colinfay.me/build-api-wrapper-package-r/). When we're done, we'll save this as`00_package_setup.R` in a newly created folder `data-raw`. 
+The script is based on [\@colinfay](https://twitter.com/_colinfay)'s post on [API development](https://colinfay.me/build-api-wrapper-package-r/). When we're done, we'll save this as`00_package_setup.R` in a newly created folder `data-raw`. 
 
 ```{r pck-set-up, echo = T, eval=F}
 
@@ -123,8 +132,8 @@ my_desc$set(Title = "Analyses of WB Population data in an exemplary package comp
 # The description of your package
 my_desc$set(Description = "This is a test run for an analyses based on reproducible research principles.")
 # The urls
-my_desc$set("URL", "http://github.com/the-hull/wbAnalyses")
-my_desc$set("BugReports", "http://github.com/the-hull/wbAnalyses/issues")
+my_desc$set("URL", "https://github.com/the-Hull/reproducibility_compendium")
+my_desc$set("BugReports", "https://github.com/the-Hull/reproducibility_compendium/issues")
 # Save everyting
 my_desc$write(file = "DESCRIPTION")
 
@@ -140,7 +149,6 @@ use_package("ggplot2")
 use_package("dplyr")
 use_package("rlang")
 use_package("tidyr", type = "Imports")
-use_package("dygraphs")
 use_package("attempt", type = "Imports")
 
 
@@ -412,11 +420,11 @@ Now, all code and data is ready to use, and we can start writing an actual analy
 
 # Write-up
 
-The section outlines the analyes in our mock report, which answers the following question:
+The section outlines a brief analyes in our mock report, which answers the following question with a quick visualization:
 
 - Within each region, which countries have represent the most extreme values of growth and loss?
 
-Note, that this `.Rmd` file containing this post is itself the write-up, found in the research compendia!
+Note, that the `.Rmd` file containing this post is itself the write-up, found in the research compendium in `analyses/00_write-up.Rmd`!
 
 
 ### Identifying big gainers and little losers
@@ -469,72 +477,91 @@ extreme_change %>%
 
 
 
-```{r plot_adj_legend,echo=TRUE, eval = TRUE, fig.height = 15, fig.width = 9}
+```{r plot_adj_legend,echo=TRUE, eval = TRUE, fig.height = 15, fig.width = 9, device = "svg"}
 
 library(purrr)
 library(gridExtra)
 
+
+# make a list of plots that can be arranged with gridExtra
 gglist <- pop_data[pop_data$country_name %in% 
                        extreme_change$country_name, ] %>% 
     left_join(extreme_change, 
               by = c("country_name", "region")) %>% 
+    
     split(f = .$region) %>%
     purrr::map(function(x){
         x %>%
             ggplot(aes(x = as.numeric(year),
                        y = population,
                        color = country_name)) +
-            geom_rect(xmin = 2006,
+           
+             # shade area of interest
+            annotate(geom = "rect",
+                     xmin = 2006,
                       xmax = 2016, 
                       ymin = -Inf,
                       ymax = Inf,
                       fill = "gray90",
                       col = NA,
-                      alpha = .1) +
+                      alpha = .4) +
+            
             geom_line(size = 1.5) +
             
+            # styling
             theme_minimal() +
-            # facet_grid(region~., scales = "free_y") +
+            theme(legend.position = "bottom") +
+            
             ylab("Population (millions)") +
             xlab("Year") +
-            # ggtitle("Country-level opulation change between 2006 and 2016",
-            # subtitle = "for most extreme change (top and bottom) divided by World Regions") +
             labs(color = "", 
                  title = x$region %>%
                      unique()) +
-            # stat_summary(fun.y = max, 
-            # geom = "label",mapping = aes(x = 1970, label = country_name), show.legend = F) +
+            scale_color_manual(values = c("steelblue1", "darkorange")) + 
+            
+            
+            # place percent label at end of line
             stat_summary(fun.y = function(x) x[length(x)], 
                          geom = "text",
                          mapping = aes(x = 2018.5,
                                        label = population_perc_change %>% round(2)  %>% paste("%")),
                          show.legend = F) +
-            # ggplot2::guide_legend(direction = "horizontal") +
-            theme(legend.position = "bottom") +
+            
+            
             lims(y = c(0, max(x$population) * 1.2))
     })
 
-# purrr::map(gglist, ~gridExtra::grid.arrange(.x, ncol = 3,newpage = F))
 
-
-# gridExtra::grid.arrange(gglist, ncol = 3,newpage = F)
-# do.call(gridExtra::grid.arrange, c(gglist, ncol=3))
+# arrange plots and add a title
 gridExtra::marrangeGrob(gglist,
                         ncol = 1,
                         nrow = 6,
                         top = "Country-level population change between 2006 and 2016", 
                         bottom = "Source: World Bank, 2018", color = "Country")
 
-# ggsave(plot = wl_plot,
-#        filename = "./out/figs/01_shallow_wetlands/URSA_P19_wl_cleaned.pdf",
-#        width = 17.5,
-#        height = 25,
-#        units = "in")
+
 
 
 ```
 
+# Sharing compendia
 
+There are multiple approaches you can adopt for sharing your compendium. These range from: 
+
+- shared/accessible cloud storage (e.g. OneDrive, DropBox, Google Drive)
+- Version-controlled Repository (e.g. GitHub, GitLab, BitBucket)
+- DOI'd Archives (e.g. Zenodo, Figshare)
+
+If you've adopted a "full package" approach - as I've done here - requiring installation, there are also a few options.
+If you're compendium is hosted on GitHub, it's enough to provide the link to download the `.zip` archive, such as [https://codeload.github.com/the-Hull/reproducibility_compendium/zip/master](https://codeload.github.com/the-Hull/reproducibility_compendium/zip/master)) with instructions to install manually (on Windows)
+
+```{r echo=TRUE, eval = FALSE}
+
+install.packages("path_to_file/reproducibility_compendium-master.zip", repos = NULL, type = "win.binary")
+```
+
+Alternatively, you can build the package in RStudio, by navigation to the "Build" pane, clicking on "More" and then on "Build Source/Binary Package". 
+The resulting archives can then be shared and installed with the code above, or manually, using the RStudio "Packages" pane (Click `Install` and choose) "From Package Archive" as the source option.
 
 # Final thoughts
 
