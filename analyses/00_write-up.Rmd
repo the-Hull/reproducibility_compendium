@@ -29,7 +29,7 @@ There are many brilliant folks working on the computational/analytical facet, pr
 
 ### What?
 
-This post is [the first in a series](https://aglhurley.rbind.io/2019/06/05/on-reproducibility-part-i/) that will lead up to isolating and sharing a computational environment together with your work (analyses and write-up), so that others can reproduce it without needing to install all of the tools and individual packages on their machine. In another post, I'll try to explore the application of [drake](https://github.com/ropensci/drake) for project management.
+This post is [the first in a series](https://aglhurley.rbind.io/2019/06/05/on-reproducibility-part-i/) that will lead up to isolating and sharing a computational environment together with your work (analyses and write-up) using [Docker][https://docker.com], so that others can reproduce it without needing to install all of the tools and individual packages on their machine. In another post, I'll try to explore the application of [drake](https://github.com/ropensci/drake) for project management.
 
 ### How?
 
@@ -553,7 +553,7 @@ There are multiple approaches you can adopt for sharing your compendium. These r
 - DOI'd Archives (e.g. Zenodo, Figshare)
 
 If you've adopted a "full package" approach - as I've done here - requiring installation, there are also a few options.
-If you're compendium is hosted on GitHub, it's enough to provide the link to download the `.zip` archive, such as [https://codeload.github.com/the-Hull/reproducibility_compendium/zip/master](https://codeload.github.com/the-Hull/reproducibility_compendium/zip/master)) with instructions to install manually (on Windows)
+If you're compendium is hosted on GitHub, it's enough to provide the link to download the `.zip` archive, such as [https://codeload.github.com/the-Hull/reproducibility_compendium/zip/master](https://codeload.github.com/the-Hull/reproducibility_compendium/zip/master) with instructions to install manually (on Windows)
 
 ```{r echo=TRUE, eval = FALSE}
 
@@ -561,7 +561,7 @@ install.packages("path_to_file/reproducibility_compendium-master.zip", repos = N
 ```
 
 Alternatively, you can build the package in RStudio, by navigation to the "Build" pane, clicking on "More" and then on "Build Source/Binary Package". 
-The resulting archives can then be shared and installed with the code above, or manually, using the RStudio "Packages" pane (Click `Install` and choose) "From Package Archive" as the source option.
+The resulting archives can then be shared and installed with the code above, or manually, using the RStudio "Packages" pane, Click `Install` and choose "From Package Archive" as the source option.
 
 # Final thoughts
 
