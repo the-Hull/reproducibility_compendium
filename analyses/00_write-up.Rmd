@@ -29,7 +29,7 @@ There are many brilliant folks working on the computational/analytical facet, pr
 
 ### What?
 
-This post is the first in a series that will lead up to isolating and sharing a computational environment together with your work (analyses and write-up), so that others can reproduce it without needing to install all of the tools and individual packages on their machine. In another post, I'll try to explore the application of [drake](https://github.com/ropensci/drake) for project management.
+This post is [the first in a series](https://aglhurley.rbind.io/2019/06/05/on-reproducibility-part-i/) that will lead up to isolating and sharing a computational environment together with your work (analyses and write-up), so that others can reproduce it without needing to install all of the tools and individual packages on their machine. In another post, I'll try to explore the application of [drake](https://github.com/ropensci/drake) for project management.
 
 ### How?
 
