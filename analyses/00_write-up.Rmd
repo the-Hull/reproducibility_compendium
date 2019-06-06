@@ -86,7 +86,7 @@ Optional and not explained here are version control tools such as [Git](https://
 
 The final compendium containing this post, as well as all of the set-up and raw data is found here: 
 [https://github.com/the-Hull/reproducibility_compendium](https://github.com/the-Hull/reproducibility_compendium).
-The next section outline and explain how we'll get there.
+The next sections outline and explain how we'll get there.
 
 ## Setting up 
 
